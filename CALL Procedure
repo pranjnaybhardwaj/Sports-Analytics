@@ -1,0 +1,33 @@
+CREATE OR REPLACE PROCEDURE LOAD_DATAMART_PROC()
+RETURNS STRING
+LANGUAGE JAVASCRIPT
+AS
+$$
+try {
+    // process name
+    var processName = 'Load_DATAMART';
+
+    // Log the start of the process
+    var logStartSql = "INSERT INTO YDS_DATA.RONALDO_STATS_DATA.ETL_LOGS (process_name, status, message) VALUES ('" + processName + "', 'START', 'ETL process started')";
+    snowflake.execute({sqlText: logStartSql});
+    
+    // Delete existing data in the datamart table
+    var deleteSql = "DELETE FROM YDS_DATA.RONALDO_STATS_DATA.DATAMART_SHOTS";
+    snowflake.execute({sqlText: deleteSql});
+    
+    // Insert transformed data from the ETL view into a table
+    var insertSql = "INSERT INTO YDS_DATA.RONALDO_STATS_DATA.DATAMART_SHOTS SELECT * FROM YDS_DATA.RONALDO_STATS_DATA.ETL_SHOTS_DATA_NEW";
+    snowflake.execute({sqlText: insertSql});
+    
+    // Log the successful completion 
+    var logSuccessSql = "INSERT INTO YDS_DATA.RONALDO_STATS_DATA.ETL_LOGS (process_name, status, message) VALUES ('" + processName + "', 'SUCCESS', 'Data loaded successfully into DATAMART_SHOTS')";
+    snowflake.execute({sqlText: logSuccessSql});
+    
+    return 'ETL process completed successfully.';
+} catch (err) {
+    // If error, log the error message
+    var logErrorSql = "INSERT INTO YDS_DATA.RONALDO_STATS_DATA.ETL_LOGS (process_name, status, message) VALUES ('Load_DATAMART', 'ERROR', '" + err.message.replace(/'/g, "''") + "')";
+    snowflake.execute({sqlText: logErrorSql});
+    return 'ETL process failed: ' + err.message;
+}
+$$;
